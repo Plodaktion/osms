@@ -2,24 +2,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 
-# Функция для преобразования строки в последовательность битов
 def string_to_bits(s):
     result = []
     for char in s:
-        # Преобразуем каждый символ в его ASCII код и затем в двоичное представление
-        bits = bin(ord(char))[2:].zfill(8)  # zfill(8) добавляет ведущие нули до 8 бит
-        result.extend([int(bit) for bit in bits])  # Добавляем биты в результат
+        bits = bin(ord(char))[2:].zfill(8)
+        result.extend([int(bit) for bit in bits])
     return result
 
-# Функция для визуализации последовательности битов
 def visualize_bits(bits, title="Bit Visualization"):
     fig, ax = plt.subplots(figsize=(10, 2))
-    ax.step(range(len(bits)), bits, where='post')  # Ступенчатая диаграмма для отображения битов
+    ax.step(range(len(bits)), bits, where='post')
     
     min_val = min(bits)
     max_val = max(bits)
     if min_val != max_val:
-        ax.set_ylim([min_val - 0.5, max_val + 0.5])  # Установка пределов по оси Y
+        ax.set_ylim([min_val - 0.5, max_val + 0.5])
     
     ax.set_xlabel("Bit Index")
     ax.set_ylabel("Bit Value")
@@ -27,237 +24,216 @@ def visualize_bits(bits, title="Bit Visualization"):
     ax.grid(True)
     plt.show()
 
-# Функция для вычисления CRC (контрольной суммы)
 def calculate_crc(data, generator):
     data_size = len(data)
     generator_size = len(generator)
-    
-    # Расширяем данные нулями для вычисления CRC
     extended_data = data + [0] * (generator_size - 1)
 
     for i in range(data_size):
-        if extended_data[i] == 1:  # Если текущий бит равен 1
+        if extended_data[i] == 1:
             for j in range(generator_size):
-                extended_data[i + j] ^= generator[j]  # Выполняем XOR с генератором
+                extended_data[i + j] ^= generator[j]
 
-    crc = extended_data[data_size:]  # Получаем CRC из расширенных данных
+    crc = extended_data[data_size:]
     return crc
 
-# Функция для генерации золотой последовательности
 def generate_gold_sequence(reg1_init, reg2_init, seq_length):
-    reg1 = reg1_init[:]  # Копируем начальные значения регистра 1
-    reg2 = reg2_init[:]  # Копируем начальные значения регистра 2
+    reg1 = reg1_init[:]
+    reg2 = reg2_init[:]
     gold_sequence = []
 
     for _ in range(seq_length):
-        out_reg1 = reg1[4]  # Выходной бит первого регистра
-        out_reg2 = reg2[4]  # Выходной бит второго регистра
+        out_reg1 = reg1[4]
+        out_reg2 = reg2[4]
 
-        feedback1 = reg1[1] ^ reg1[4]  # Обратная связь для первого регистра
-        reg1 = [feedback1] + reg1[:-1]  # Сдвиг первого регистра
+        feedback1 = reg1[1] ^ reg1[4]
+        reg1 = [feedback1] + reg1[:-1]
 
-        feedback2 = reg2[0] ^ reg2[1] ^ reg2[2]  # Обратная связь для второго регистра
-        reg2 = [feedback2] + reg2[:-1]  # Сдвиг второго регистра
+        feedback2 = reg2[0] ^ reg2[1] ^ reg2[2]
+        reg2 = [feedback2] + reg2[:-1]
 
-        gold_sequence.append(out_reg1 ^ out_reg2)  # Генерация золотого бита
+        gold_sequence.append(out_reg1 ^ out_reg2)
 
     return gold_sequence
 
-# Функция для преобразования битов в временные выборки (амплитудная модуляция)
 def bits_to_time_samples(bits, samples_per_bit):
     time_samples = []
     for bit in bits:
-        time_samples.extend([bit] * samples_per_bit)  # Повторяем каждый бит заданное количество раз
+        time_samples.extend([bit] * samples_per_bit)
     return time_samples
 
-# Функция для корреляции сигнала с шаблоном
 def correlate(signal, pattern):
     signal_np = np.array(signal)
     pattern_np = np.array(pattern)
-    
-    correlation = np.correlate(signal_np, pattern_np, mode='valid')  # Корреляция сигналов
-    return correlation / (np.linalg.norm(signal_np) * np.linalg.norm(pattern_np))  # Нормировка корреляции
+    correlation = np.correlate(signal_np, pattern_np, mode='valid')
+    return correlation / (np.linalg.norm(signal_np) * np.linalg.norm(pattern_np))
 
-# Функция для декодирования временных выборок в биты
 def decode_time_samples(time_samples, samples_per_bit, threshold):
     decoded_bits = []
-    
     for i in range(0, len(time_samples) - (len(time_samples) % samples_per_bit), samples_per_bit):
         chunk = time_samples[i:i + samples_per_bit]
-        mean_value = np.mean(chunk)  # Среднее значение выборки
-        
-        decoded_bits.append(1 if mean_value > threshold else 0)  # Декодируем бит на основе порога
-    
+        mean_value = np.mean(chunk)
+        decoded_bits.append(1 if mean_value > threshold else 0)
     return decoded_bits
 
-# Функция для проверки ошибок с использованием CRC
 def check_errors(data, generator):
-    calculated_crc = calculate_crc(data, generator)  
-    return all(bit == 0 for bit in calculated_crc)  # Проверка на наличие ошибок по CRC
+    calculated_crc = calculate_crc(data, generator)
+    return all(bit == 0 for bit in calculated_crc)
 
-# Функция для преобразования битов обратно в строку
 def bits_to_string(bits):
     string = ""
-    
-    for i in range(0, len(bits), 8):  
+    for i in range(0, len(bits), 8):
         byte = bits[i:i+8]
-        char_code = int("".join(str(bit) for bit in byte), 2)  
-        string += chr(char_code)  
-        
+        char_code = int("".join(str(bit) for bit in byte), 2)
+        string += chr(char_code)
     return string
 
-# Функция для визуализации спектра сигнала
 def visualize_spectrum(signal, fs, title="Signal Spectrum"):
-    frequencies = np.fft.fftfreq(len(signal), 1/fs)  
-    spectrum = np.abs(np.fft.fft(signal))  
+    frequencies = np.fft.fftfreq(len(signal), 1/fs)
+    spectrum = np.abs(np.fft.fft(signal))
     
     plt.figure(figsize=(10, 4))
-    
-    plt.plot(frequencies[:len(frequencies)//2], spectrum[:len(spectrum)//2])  
-  	# Отображаем только положительные частоты
-    
-  	plt.xlabel("Frequency (Hz)")
-  	plt.ylabel("Magnitude")
-  	plt.title(title)
-  	plt.grid(True)
-  	plt.show()
+    plt.plot(frequencies, spectrum)
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Magnitude")
+    plt.title(title)
+    plt.grid(True)
+    plt.show()
 
 if __name__ == "__main__":
-  	# Ввод имени и фамилии пользователя
-  	name = input("Enter your first name (latin letters): ")
-  	surname = input("Enter your last name (latin letters): ")
+    name = input("Enter your first name (latin letters): ")
+    surname = input("Enter your last name (latin letters): ")
 
-  	full_name = name + surname  
+    full_name = name + surname
 
-  	bit_sequence = string_to_bits(full_name)  
+    bit_sequence = string_to_bits(full_name)
 
-  	print("Bit sequence:", bit_sequence)
-  	visualize_bits(bit_sequence, "Bit Sequence")  
+    print("Bit sequence:", bit_sequence)
+    visualize_bits(bit_sequence, "Bit Sequence")
 
-  	print("\nASCII Coder:")
-  	for char in full_name:
-      	ascii_code = ord(char)
-      	binary_representation = bin(ascii_code)[2:].zfill(8)
-      	print(f"'{char}': {ascii_code} (decimal), {binary_representation} (binary)")  
+    print("\nASCII Coder:")
+    for char in full_name:
+        ascii_code = ord(char)
+        binary_representation = bin(ascii_code)[2:].zfill(8)
+        print(f"'{char}': {ascii_code} (decimal), {binary_representation} (binary)")
 
-  	generator = [1, 0, 1, 1, 1, 0, 1, 1]
-  	crc = calculate_crc(bit_sequence, generator)
+    generator = [1, 0, 1, 1, 1, 0, 1, 1]
+    crc = calculate_crc(bit_sequence, generator)
 
-  	print("\nCRC Generator:", generator)
-  	print("Calculated CRC:", crc)
+    print("\nCRC Generator:", generator)
+    print("Calculated CRC:", crc)
 
-  	bit_sequence_with_crc = bit_sequence + crc  
+    bit_sequence_with_crc = bit_sequence + crc
 
-  	reg1_init = [1, 0, 1, 0, 1]
-  	reg2_init = [1, 1, 1, 0, 1]
-  	gold_sequence_length = 31  
-  	gold_sequence = generate_gold_sequence(reg1_init, reg2_init, gold_sequence_length)
+    reg1_init = [1, 0, 1, 0, 1]
+    reg2_init = [1, 1, 1, 0, 1]
+    gold_sequence_length = 31  # G
+    gold_sequence = generate_gold_sequence(reg1_init, reg2_init, gold_sequence_length)
 
-  	print("\nGold Sequence:", gold_sequence)
+    print("\nGold Sequence:", gold_sequence)
 
-  	final_bit_sequence = gold_sequence + bit_sequence_with_crc  
+    final_bit_sequence = gold_sequence + bit_sequence_with_crc
 
-  	print("\nFinal bit sequence (Gold + Data + CRC):", final_bit_sequence)
-  	visualize_bits(final_bit_sequence, "Final Bit Sequence (Gold + Data + CRC)")  
+    print("\nFinal bit sequence (Gold + Data + CRC):", final_bit_sequence)
+    visualize_bits(final_bit_sequence, "Final Bit Sequence (Gold + Data + CRC)")
 
-  	fs = 100  
-  	samples_per_bit_values = [5, 10, 20]
+    fs = 100
+    samples_per_bit_values = [5, 10, 20]
 
-  	spectra = []
-  	noisy_spectra = []
+    spectra = []
+    noisy_spectra = []
 
-	for samples_per_bit in samples_per_bit_values:
-      	time_samples = bits_to_time_samples(final_bit_sequence,samples_per_bit)
+    for samples_per_bit in samples_per_bit_values:
+        time_samples = bits_to_time_samples(final_bit_sequence, samples_per_bit)
+        
+        print(f"\nTime samples (N={samples_per_bit}):", time_samples)
+        visualize_bits(time_samples, f"Time Samples (Amplitude Modulation, N={samples_per_bit})")
 
-      	print(f"\nTime samples (N={samples_per_bit}):", time_samples)
-      	visualize_bits(time_samples,f"Time Samples (Amplitude Modulation,N={samples_per_bit})")
+        visualize_spectrum(time_samples, fs, f"Transmitted Signal Spectrum (N={samples_per_bit})")
 
-      	visualize_spectrum(time_samples ,fs,f"Transmitted Signal Spectrum(N={samples_per_bit})")
+        L = len(bit_sequence)
+        M = len(crc)
+        G = gold_sequence_length
+        N = samples_per_bit
 
-      	L=len(bit_sequence)
-      	M=len(crc)
-      	G=gold_sequence_length 
-      	N=samples_per_bit 
+        signal_length = 2 * N * (L + M + G)
+        signal = [0] * signal_length
 
-      	signal_length=2*N*(L+M+G) 
-      	signal=[0]*signal_length 
+        while True:
+            try:
+                shift_str = input(f"Enter shift from 0 to {N * (L + M + G)} (N={samples_per_bit}): ")
+                shift = int(shift_str)
+                if 0 <= shift <= N * (L + M + G):
+                    break
+                else:
+                    print("Shift value must be within the specified range.")
+            except ValueError:
+                print("Invalid input. Please enter an integer.")
 
-      	while True:
-          	try:
-              	shift_str=input(f"Enter shift from {0} to {N*(L+M+G)} (N={samples_per_bit}): ")
-              	shift=int(shift_str)
+        signal[shift : min(shift + len(time_samples), signal_length)] = time_samples[:min(len(time_samples), signal_length - shift)]
 
-              	if shift >=0 and shift <= N*(L+M+G): 
-                  	break 
-              	else:
-                  	print("Shift value must be within the specified range.")
-          	except ValueError:
-              	print("Invalid input. Please enter an integer.")
+        print("Signal:", signal)
+        visualize_bits(signal, f"Signal with Shift (N = {samples_per_bit})")
 
-      	signal[shift:min(shift+len(time_samples),signal_length)] =
-          time_samples[:min(len(time_samples),signal_length-shift)] 
+        sigma = float(input(f"Enter sigma for noise (float, N={samples_per_bit}): "))
+        noise = np.random.normal(0, sigma, signal_length)
 
-      	print("Signal:", signal)
-      	visualize_bits(signal,f"Signal with Shift(N={samples_per_bit})")
+        noisy_signal = (np.array(signal) + noise).tolist()
 
-      	sigma=float(input(f"Enter sigma for noise(float,N={samples_per_bit}): "))
-      	noise=np.random.normal(0,sigma ,signal_length ) 
+        visualize_bits(noisy_signal, f"Noisy Signal (N={samples_per_bit})")
 
-      	noisy_signal=(np.array(signal)+noise).tolist() 
+        visualize_spectrum(noisy_signal, fs, f"Noisy Signal Spectrum (N={samples_per_bit})")
 
-      	visualize_bits(noisy_signal,f"Noisy Signal(N={samples_per_bit})")
+        frequencies = np.fft.fftfreq(len(signal), 1/fs)
+        spectrum = np.abs(np.fft.fft(signal))
+        
+        frequencies_noisy = np.fft.fftfreq(len(noisy_signal), 1/fs)
+        spectrum_noisy = np.abs(np.fft.fft(noisy_signal))
+        
+        spectra.append((frequencies, spectrum, f"Signal, N={samples_per_bit}"))
+        noisy_spectra.append((frequencies_noisy, spectrum_noisy, f"Noisy, N={samples_per_bit}"))
 
-      	visualize_spectrum(noisy_signal ,fs,f"Noisy Signal Spectrum(N={samples_per_bit})")
+        gold_time_samples = bits_to_time_samples(gold_sequence, samples_per_bit)
+        correlation_result = correlate(noisy_signal, gold_time_samples)
 
-      	frequencies=np.fft.fftfreq(len(signal),{fs})
-      spectrum=np.abs(np.fft.fft(signal))
+        start_index = np.argmax(correlation_result)
 
-      frequencies_noisy=np.fft.fftfreq(len(noisy_signal),{fs})
-      spectrum_noisy=np.abs(np.fft.fft(noisy_signal))
+        print(f"Gold sequence starts at index: {start_index}")
 
-      spectra.append((frequencies,spectrum,f"Signal,N={samples_per_bit}"))
-      noisy_spectra.append((frequencies_noisy,spectrum_noisy,f"Noisy,N={samples_per_bit}"))
+        received_data_samples = noisy_signal[start_index:]
 
-      gold_time_samples=bits_to_time_samples(gold_sequence,samples_per_bit )
-      correlation_result=correlate(noisy_signal,gold_time_samples )
+        visualize_bits(received_data_samples, f"Received Data Samples (After Correlation, N={samples_per_bit})")
 
-      start_index=np.argmax(correlation_result ) 
+        threshold = 0.5
+        decoded_bits = decode_time_samples(received_data_samples, samples_per_bit, threshold)
 
-      print(f"Gold sequence starts at index: {start_index}")
+        print(f"Decoded bits (with Gold and CRC, N = {samples_per_bit}): {decoded_bits}")
+        visualize_bits(decoded_bits, f"Decoded Bits (with Gold and CRC, N= {samples_per_bit})")
 
-      received_data_samples=noisy_signal[start_index:] 
+        decoded_bits_without_gold = decoded_bits[gold_sequence_length:]
 
-      visualize_bits(received_data_samples,f"Received Data Samples(After Correlation,N={samples_per_bit})")
+        print(f"Decoded bits (without Gold, with CRC, N= {samples_per_bit}): {decoded_bits_without_gold}")
+        visualize_bits(decoded_bits_without_gold, f"Decoded Bits (without Gold, with CRC, N={samples_per_bit})")
 
-      threshold=0.5 
-      decoded_bits=decode_time_samples(received_data_samples,samples_per_bit ,threshold )
+        if check_errors(decoded_bits_without_gold[:-len(crc)], generator):
+            print("No errors detected!")
+            decoded_data_bits = decoded_bits_without_gold[:-len(crc)]
+            decoded_string = bits_to_string(decoded_data_bits)
+            print("Decoded string:", decoded_string)
+        else:
+            print("Errors detected!")
 
-      print(f"Decoded bits(with Gold and CRC,N={samples_per_bit}): {decoded_bits}")
-      visualize_bits(decoded_bits,f"Decoded Bits(with Gold and CRC,N={samples_per_bit})")
-
-      decoded_bits_without_gold=decoded_bits[gold_sequence_length:] 
-
-      print(f"Decoded bits(without Gold ,with CRC,N={samples_per_bit}): {decoded_bits_without_gold}")
-      visualize_bits(decoded_bits_without_gold,f"Decoded Bits(without Gold ,with CRC,N={samples_per_bit})")
-
-      if check_errors(decoded_bits_without_gold[:-len(crc)],generator ):
-          print("No errors detected!")
-          decoded_data_bits=decoded_bits_without_gold[:-len(crc)]
-          decoded_string=bits_to_string(decoded_data_bits )
-          print("Decoded string:",decoded_string )
-      else:
-          print("Errors detected!")
-
-	plt.figure(figsize=(12 ,6))
-
-	for freq,spec,label in spectra:
-    	plt.plot(freq,spec,label=label)
-
-	for freq,spec,label in noisy_spectra:
-    	plt.plot(freq,spec ,linestyle='--',label=label)
-
-	plt.xlabel("Frequency(Hz)")
-	plt.ylabel("Magnitude")
-	plt.title("Signal Spectrums for Different N Values")
-	plt.legend()
-	plt.grid(True)
+    plt.figure(figsize=(12, 6))
+    
+    for freq, spec, label in spectra:
+        plt.plot(freq, spec, label=label)
+    
+    for freq, spec, label in noisy_spectra:
+        plt.plot(freq, spec, linestyle='--', label=label)
+    
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Magnitude")
+    plt.title("Signal Spectrums for Different N Values")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
